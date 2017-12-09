@@ -5,7 +5,9 @@
 
 using namespace std;
 
+void __init__(int startPointAX, int startPointAY, int startPointBX, int startPointBY);
 void drawGrid();
+bool operateInput();
 int readCommand();
 bool invadeTile(int goalX, int goalY, int owner);
 bool checkNeighbour(int owner, int x, int y);
@@ -14,6 +16,9 @@ bool recruitCivilians(int goalX, int goalY, int howMany, int owner);
 void updateMap();
 void showStatus();
 void helpTab();
+void collectTaxes(int owner);
+void transferMilitary(int startX, int startY, int goalX, int goalY, int howMuch, int owner);
+void recruitByForce(int owner);
 
 const int WIDTH = 10;
 const int HEIGHT = 10;
@@ -34,6 +39,10 @@ const int NCMoneyPT = 15;
 const int NVMilitaryPowerPT = 0;
 const int NCMilitaryPowerPT = 1;
 
+const int NEUTRAL_ID = 0;
+const int PLAYER_ID = 1;
+const int ENEMY_ID = 2;
+
 Tile grid[WIDTH][HEIGHT];
 Point cities[howManyCities];
 
@@ -42,18 +51,78 @@ int enemyMoney = startingMoney;
 
 int main() {
     bool done = false;
-    bool finishTurn = false;
 
     int startPointAX = 0, startPointAY = 5;
     int startPointBX = 9, startPointBY = 5;
 
+    __init__(startPointAX, startPointAY, startPointBX, startPointBY);
+
+    while(!done) {
+        system("cls");
+        drawGrid();
+        if (operateInput()) {
+            done = true;
+        }
+        updateMap();
+    }
+
+    return 0;
+}
+
+bool operateInput() {
+    bool finishTurn = false;
+
     int input = 0;
+
+    int startX = 0;
+    int startY = 0;
 
     int goalX = 0;
     int goalY = 0;
 
     int howMany = 0;
+    while (!finishTurn) {
+        input = readCommand();
+        if (input == -1) { finishTurn = true; return true; }
+        else if (input == 1) {
+        cin >> goalX >> goalY;
+        if (!invadeTile(goalX, goalY, PLAYER_ID)) {
+                finishTurn = false;
+            } else {
+                finishTurn = true;
+            }
+        } else if (input == 2) {
+            cin >> goalX >> goalY;
+            inspectTile(goalX, goalY);
+        } else if (input == 3) {
+            cin >> goalX >> goalY >> howMany;
+            if (!recruitCivilians(goalX, goalY, howMany, PLAYER_ID)) {
+                finishTurn = false;
+            } else {
+                finishTurn = true;
+            }
+        } else if (input == 4) {
+            finishTurn = true;
+        } else if (input == 5) {
+            showStatus();
+        } else if(input == 6) {
+            helpTab();
+        } else if (input == 7) {
+            collectTaxes(PLAYER_ID);
+            finishTurn = true;
+        } else if (input == 8) {
+            cin >> startX >> startY >> goalX >> goalY >> howMany;
+            transferMilitary(startX, startY, goalX, goalY, howMany,PLAYER_ID);
+            finishTurn = true;
+        } else if (input == 9) {
+            recruitByForce(PLAYER_ID);
+            finishTurn = true;
+        }
+    }
+    return false;
+}
 
+void __init__(int startPointAX, int startPointAY, int startPointBX, int startPointBY) {
     cities[0].x = 1;
     cities[0].y = 2;
     cities[1].x = 8;
@@ -68,22 +137,22 @@ int main() {
     for (int y = 0; y < HEIGHT; y++) {
         for (int x = 0; x < WIDTH; x++) {
             grid[x][y].militaryPower = 0;
-            grid[x][y].ownerID = 0;
+            grid[x][y].ownerID = NEUTRAL_ID;
             grid[x][y].civilians = 10;
             grid[x][y].money = 5;
         }
     }
 
     grid[startPointAX][startPointAY].militaryPower = 20;
-    grid[startPointAX][startPointAY].ownerID = 1;
+    grid[startPointAX][startPointAY].ownerID = PLAYER_ID;
     grid[startPointAX][startPointAY].civilians = 30;
     grid[startPointAX][startPointAY].city = true;
     grid[startPointAX][startPointAY].money = 100;
     grid[startPointBX][startPointBY].militaryPower = 20;
-    grid[startPointBX][startPointBY].ownerID = 2;
+    grid[startPointBX][startPointBY].ownerID = ENEMY_ID;
     grid[startPointBX][startPointBY].civilians = 30;
     grid[startPointBX][startPointBY].city = true;
-    grid[startPointBX][startPointBY].city = 100;
+    grid[startPointBX][startPointBY].money = 100;
 
     for (int y = 0; y < howManyCities; y++) {
         grid[cities[y].x][cities[y].y].city = true;
@@ -91,43 +160,42 @@ int main() {
         grid[cities[y].x][cities[y].y].civilians = 30;
         grid[cities[y].x][cities[y].y].money = 100;
     }
+}
 
-    while(!done) {
-        system("cls");
-        drawGrid();
-        finishTurn = false;
-        while (!finishTurn) {
-            input = readCommand();
-            if (input == -1) { finishTurn = true; done = true; }
-            else if (input == 1) {
-                cin >> goalX >> goalY;
-                if (!invadeTile(goalX, goalY, 1)) {
-                    finishTurn = false;
-                } else {
-                    finishTurn = true;
-                }
-            } else if (input == 2) {
-                cin >> goalX >> goalY;
-                inspectTile(goalX, goalY);
-            } else if (input == 3) {
-                cin >> goalX >> goalY >> howMany;
-                if (!recruitCivilians(goalX, goalY, howMany, 1)) {
-                    finishTurn = false;
-                } else {
-                    finishTurn = true;
-                }
-            } else if (input == 4) {
-                finishTurn = true;
-            } else if (input == 5) {
-                showStatus();
-            } else if(input == 6) {
-                helpTab();
+void collectTaxes(int owner) {
+    for (int y = 0; y < HEIGHT; y++) {
+        for (int x = 0; x < WIDTH; x++) {
+            if (grid[x][y].ownerID == owner && grid[x][y].money > 0) {
+                playerMoney += grid[x][y].money;
+                grid[x][y].money = 0;
             }
         }
-        updateMap();
     }
+}
 
-    return 0;
+void recruitByForce(int owner) {
+    for (int y = 0; y < HEIGHT; y++) {
+        for (int x = 0; x < WIDTH; x++) {
+            if (grid[x][y].ownerID == owner) {
+                grid[x][y].militaryPower += grid[x][y].civilians;
+                grid[x][y].civilians = 0;
+            }
+        }
+    }
+}
+
+void transferMilitary(int startX, int startY, int goalX, int goalY, int howMuch, int owner) {
+    if (startX + 1 == goalX && startY == goalY || startX - 1 == goalX && startY == goalY || startX == goalX && startY + 1 == goalY || startX == goalX && startY - 1 == goalY) {
+        if (grid[startX][startY].ownerID == owner && grid[goalX][goalY].ownerID == owner) {
+            if (grid[startX][startY].militaryPower > howMuch) {
+                grid[goalX][goalY].militaryPower += howMuch;
+                grid[startX][startY].militaryPower -= howMuch;
+            } else if (grid[startX][startY].militaryPower <= howMuch) {
+                grid[goalX][goalY].militaryPower += grid[startX][startY].militaryPower;
+                grid[startX][startY].militaryPower = 0;
+            }
+        }
+    }
 }
 
 void showStatus() {
@@ -135,7 +203,7 @@ void showStatus() {
     int militaryPower = 0;
     for (int y = 0; y < HEIGHT; y++) {
         for (int x = 0; x < WIDTH; x++) {
-            if (grid[x][y].ownerID == 1) {
+            if (grid[x][y].ownerID == PLAYER_ID) {
                 militaryPower += grid[x][y].militaryPower;
             }
         }
@@ -144,9 +212,9 @@ void showStatus() {
     int militaryPowerIncome = 0;
     for (int y = 0; y < HEIGHT; y++) {
         for (int x = 0; x < WIDTH; x++) {
-            if (grid[x][y].ownerID == 1 && !grid[x][y].city) {
+            if (grid[x][y].ownerID == PLAYER_ID && !grid[x][y].city) {
                 militaryPowerIncome += OVMilitaryPowerPT;
-            } else if (grid[x][y].ownerID == 1 && grid[x][y].city) {
+            } else if (grid[x][y].ownerID == PLAYER_ID && grid[x][y].city) {
                 militaryPowerIncome += OCMilitaryPowerPT;
             }
         }
@@ -155,17 +223,26 @@ void showStatus() {
     int cities = 0;
     for (int y = 0; y < HEIGHT; y++) {
         for (int x = 0; x < WIDTH; x++) {
-            if (grid[x][y].ownerID == 1 && grid[x][y].city) {
+            if (grid[x][y].ownerID == PLAYER_ID && grid[x][y].city) {
                 cities++;
             }
         }
     }
-    cout << cities << endl << "  Joint civilians income per turn: ";
+    cout << cities << endl << "  Joint civilians: ";
+    int civilians = 0;
+    for (int y = 0; y < HEIGHT; y++) {
+        for (int x = 0; x < WIDTH; x++) {
+            if (grid[x][y].ownerID == PLAYER_ID) {
+                civilians += grid[x][y].civilians;
+            }
+        }
+    }
+    cout << civilians << endl << "  Joint civilians income per turn: ";
     int civiliansIncome = 0;
     civiliansIncome += cities * OCCiviliansPT;
     for (int y = 0; y < HEIGHT; y++) {
         for (int x = 0; x < WIDTH; x++) {
-            if (grid[x][y].ownerID == 1 && !grid[x][y].city) {
+            if (grid[x][y].ownerID == PLAYER_ID && !grid[x][y].city) {
                 civiliansIncome += OVCiviliansPT;
             }
         }
@@ -174,7 +251,7 @@ void showStatus() {
     int moneyToCollect = 0;
     for (int y = 0; y < HEIGHT; y++) {
         for (int x = 0; x < WIDTH; x++) {
-            if (grid[x][y].ownerID == 1) {
+            if (grid[x][y].ownerID == PLAYER_ID) {
                 moneyToCollect += grid[x][y].money;
             }
         }
@@ -183,9 +260,9 @@ void showStatus() {
     int moneyIncome = 0;
     for (int y = 0; y < HEIGHT; y++) {
         for (int x = 0; x < WIDTH; x++) {
-            if (grid[x][y].ownerID == 1 && !grid[x][y].city) {
+            if (grid[x][y].ownerID == PLAYER_ID && !grid[x][y].city) {
                 moneyIncome += OVMoneyPT;
-            } else if (grid[x][y].ownerID == 1 && grid[x][y].city) {
+            } else if (grid[x][y].ownerID == PLAYER_ID && grid[x][y].city) {
                 moneyIncome += OCMoneyPT;
             }
         }
@@ -197,7 +274,7 @@ void updateMap() {
     for (int y = 0; y < HEIGHT; y++) {
         for (int x = 0; x < WIDTH; x++) {
             if (grid[x][y].city) {
-                if (grid[x][y].ownerID == 1 || grid[x][y].ownerID == 2) {
+                if (grid[x][y].ownerID == PLAYER_ID || grid[x][y].ownerID == ENEMY_ID) {
                     grid[x][y].civilians += OCCiviliansPT;
                     grid[x][y].militaryPower += OCMilitaryPowerPT;
                     grid[x][y].money += OCMoneyPT;
@@ -207,7 +284,7 @@ void updateMap() {
                     grid[x][y].money += NCMoneyPT;
                 }
             } else {
-                if (grid[x][y].ownerID == 1 || grid[x][y].ownerID == 2) {
+                if (grid[x][y].ownerID == PLAYER_ID || grid[x][y].ownerID == ENEMY_ID) {
                     grid[x][y].civilians += OVCiviliansPT;
                     grid[x][y].militaryPower += OVMilitaryPowerPT;
                     grid[x][y].money += OVMoneyPT;
@@ -234,9 +311,9 @@ void helpTab() {
 
 void inspectTile(int x, int y) {
     cout << "Owner: ";
-    if (grid[x][y].ownerID == 0) {
+    if (grid[x][y].ownerID == NEUTRAL_ID) {
         cout << "None" << endl;
-    } else if (grid[x][y].ownerID == 1) {
+    } else if (grid[x][y].ownerID == PLAYER_ID) {
         cout << "Player" << endl;
     } else {
         cout << "Enemy" << endl;
@@ -309,7 +386,7 @@ void drawGrid() {
     for (int y = 0; y < HEIGHT; y++) {
         for (int x = 0; x < WIDTH; x++) {
             HANDLE hConsole = GetStdHandle( STD_OUTPUT_HANDLE );
-            if (grid[x][y].ownerID == 1) {
+            if (grid[x][y].ownerID == PLAYER_ID) {
                 if (grid[x][y].city == true) {
                     SetConsoleTextAttribute(hConsole, 2);
                     cout << "[]";
@@ -318,7 +395,7 @@ void drawGrid() {
                     cout << "::";
                 }
             }
-            else if (grid[x][y].ownerID == 2) {
+            else if (grid[x][y].ownerID == ENEMY_ID) {
                 if (grid[x][y].city == true) {
                     SetConsoleTextAttribute(hConsole, 4);
                     cout << "[]";
@@ -360,8 +437,14 @@ int readCommand() {
         commandID = 4;
     } else if (command == "status") { //Done
         commandID = 5;
-    } else if (command == "help") { // Done
+    } else if (command == "help") { //Done
         commandID = 6;
+    } else if (command == "taxes") { //Not done
+        commandID = 7;
+    } else if (command == "transfer") { //Not done
+        commandID = 8;
+    } else if (command == "forceRecruit") { //Not done
+        commandID = 9;
     }
 
     return commandID;
