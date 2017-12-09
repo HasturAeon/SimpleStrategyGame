@@ -19,9 +19,11 @@ void helpTab();
 void collectTaxes(int owner);
 void transferMilitary(int startX, int startY, int goalX, int goalY, int howMuch, int owner);
 void recruitByForce(int owner);
+bool checkGame(int startPointAX, int startPointAY, int startPointBX, int startPointBY);
+void giveUp();
 
-const int WIDTH = 10;
-const int HEIGHT = 10;
+const int WIDTH = 11;
+const int HEIGHT = 11;
 const int howManyCities = 5;
 const int startingMoney = 500;
 
@@ -50,10 +52,12 @@ int playerMoney = startingMoney;
 int enemyMoney = startingMoney;
 
 int main() {
+    string decision;
+
     bool done = false;
 
     int startPointAX = 0, startPointAY = 5;
-    int startPointBX = 9, startPointBY = 5;
+    int startPointBX = 10, startPointBY = 5;
 
     __init__(startPointAX, startPointAY, startPointBX, startPointBY);
 
@@ -63,10 +67,37 @@ int main() {
         if (operateInput()) {
             done = true;
         }
+        if (checkGame(startPointAX, startPointAY, startPointBX, startPointBY)) {
+            if (grid[startPointBX][startPointBY].ownerID == PLAYER_ID) {
+                system("cls");
+                cout << "Congratulations! You won the game!" << endl << "Do you want to try again?[Y/N]" << endl;
+                cin >> decision;
+                if (decision[0] == 'Y') {
+                    __init__(startPointAX, startPointAY, startPointBX, startPointBY);
+                } else {
+                    done = true;
+                }
+            } else {
+                system("cls");
+                cout << "You lost... Do you want to try again?[Y/N]" << endl;
+                cin >> decision;
+                if (decision[0] == 'Y') {
+                    __init__(startPointAX, startPointAY, startPointBX, startPointBY);
+                } else {
+                    done = true;
+                }
+            }
+        }
         updateMap();
     }
 
     return 0;
+}
+
+bool checkGame(int startPointAX, int startPointAY, int startPointBX, int startPointBY) {
+    if (grid[startPointAX][startPointAY].ownerID != PLAYER_ID || grid[startPointBX][startPointBY].ownerID != ENEMY_ID) {
+        return true;
+    } return false;
 }
 
 bool operateInput() {
@@ -116,10 +147,22 @@ bool operateInput() {
             finishTurn = true;
         } else if (input == 9) {
             recruitByForce(PLAYER_ID);
+        } else if (input == 10) {
+            giveUp();
             finishTurn = true;
         }
     }
     return false;
+}
+
+void giveUp() {
+    for (int y = 0; y < HEIGHT; y++) {
+        for (int x = 0; x < WIDTH; x++) {
+            if (grid[x][y].ownerID == PLAYER_ID) {
+                grid[x][y].ownerID == NEUTRAL_ID;
+            }
+        }
+    }
 }
 
 void __init__(int startPointAX, int startPointAY, int startPointBX, int startPointBY) {
@@ -445,6 +488,8 @@ int readCommand() {
         commandID = 8;
     } else if (command == "forceRecruit") { //Not done
         commandID = 9;
+    } else if (command == "giveUp") { //Not done
+        commandID = 10;
     }
 
     return commandID;
