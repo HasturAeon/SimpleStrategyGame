@@ -47,3 +47,4 @@ Temporary Items
 .apdisk
 *.cbp
 *.layout
+*.depend
