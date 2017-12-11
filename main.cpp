@@ -159,7 +159,7 @@ void giveUp() {
     for (int y = 0; y < HEIGHT; y++) {
         for (int x = 0; x < WIDTH; x++) {
             if (grid[x][y].ownerID == PLAYER_ID) {
-                grid[x][y].ownerID == NEUTRAL_ID;
+                grid[x][y].ownerID = NEUTRAL_ID;
             }
         }
     }
