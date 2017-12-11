@@ -45,6 +45,10 @@ const int NEUTRAL_ID = 0;
 const int PLAYER_ID = 1;
 const int ENEMY_ID = 2;
 
+const int PLAIN = 0;
+const int WATER = 1;
+const int MOUNTAIN = 2;
+
 Tile grid[WIDTH][HEIGHT];
 Point cities[howManyCities];
 
@@ -183,6 +187,7 @@ void __init__(int startPointAX, int startPointAY, int startPointBX, int startPoi
             grid[x][y].ownerID = NEUTRAL_ID;
             grid[x][y].civilians = 10;
             grid[x][y].money = 5;
+            grid[x][y].terrainID = PLAIN;
         }
     }
 
@@ -191,11 +196,13 @@ void __init__(int startPointAX, int startPointAY, int startPointBX, int startPoi
     grid[startPointAX][startPointAY].civilians = 30;
     grid[startPointAX][startPointAY].city = true;
     grid[startPointAX][startPointAY].money = 100;
+    grid[startPointAX][startPointAY].terrainID = MOUNTAIN;
     grid[startPointBX][startPointBY].militaryPower = 20;
     grid[startPointBX][startPointBY].ownerID = ENEMY_ID;
     grid[startPointBX][startPointBY].civilians = 30;
     grid[startPointBX][startPointBY].city = true;
     grid[startPointBX][startPointBY].money = 100;
+    grid[startPointBX][startPointBY].terrainID = MOUNTAIN;
 
     for (int y = 0; y < howManyCities; y++) {
         grid[cities[y].x][cities[y].y].city = true;
@@ -369,7 +376,19 @@ void inspectTile(int x, int y) {
     } else {
         cout << "Village" << endl;
     }
-    cout << "Money: " << grid[x][y].money << endl;
+    cout << "Money: " << grid[x][y].money << endl << "Terrain Type: ";
+    switch (grid[x][y].terrainID) {
+    case PLAIN:
+        cout << "Plains";
+        break;
+    case WATER:
+        cout << "Lake";
+        break;
+    case MOUNTAIN:
+        cout << "Mountains";
+        break;
+    }
+    cout << endl;
 }
 
 bool invadeTile(int goalX, int goalY, int owner) {

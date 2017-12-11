@@ -9,6 +9,7 @@ class Tile {
         int militaryPower;
         int civilians;
         int money;
+        int terrainID;
         bool city;
         virtual ~Tile();
 
